@@ -54,7 +54,14 @@ export class UsuarioController {
     usuario.contrasena = contrasenaCifrada;
     let u = await this.usuarioRepository.create(usuario);
 
-    fetch ("http://127.0.0.1:5000/")
+    let destino = usuario.correo;
+    let asunto = "Bienvenido a tio pet tu mascota feliz";
+    let contenido = `Hola ${usuario.nombre}, su nombre de usuario es: ${usuario.correo} y su contraseña es: ${contrasena}`;
+    fetch (`http://127.0.0.1:5000/envio-correo?correo_destino=${destino}&asunto=${asunto}&contenido=${contenido}`)
+    .them((data:any) =>{
+      console.log(data);
+    })
+    return u;
 
   }
 
