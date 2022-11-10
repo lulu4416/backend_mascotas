@@ -5,32 +5,54 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
-  put,
-  del,
-  requestBody,
-  response,
+  del, get,
+  getModelSchemaRef, HttpErrors, param, patch, post, put, requestBody,
+  response
 } from '@loopback/rest';
-import {Usuario} from '../models';
+import {Llaves} from '../config/llaves';
+import {Credenciales, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
 import {AutenticacionService} from '../services';
-const fetch = require("node-fetch");
+const fetch = require ("node-fetch");
 
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
-    public usuarioRepository : UsuarioRepository,
+    public usuarioRepository: UsuarioRepository,
     @service(AutenticacionService)
     public servicioAutenticacion: AutenticacionService
-  ) {}
+  ) { }
 
+
+  @post("/identificarUsuario", {
+    responses: {
+      "200": {
+        description: "Identificacion de usuarios"
+      }
+    }
+  })
+  async identificarusuario(
+    @requestBody() Credenciales: Credenciales
+  ) {
+    let u = await this.servicioAutenticacion.IdentificarUsuario(Credenciales.Usuario, Credenciales.Clave);
+    if (u) {
+      let token = this.servicioAutenticacion.GenerarTokenJWT(u);
+      return {
+        datos: {
+          nombre: u.nombre,
+          correo: u.correo,
+          id: u.id
+        },
+        tk: token
+      }
+
+    } else {
+      throw new HttpErrors[401]("Datos Invalidos");
+    }
+  }
   @post('/usuarios')
   @response(200, {
     description: 'Usuario model instance',
@@ -57,12 +79,11 @@ export class UsuarioController {
     let destino = usuario.correo;
     let asunto = "Bienvenido a tio pet tu mascota feliz";
     let contenido = `Hola ${usuario.nombre}, su nombre de usuario es: ${usuario.correo} y su contraseña es: ${contrasena}`;
-    fetch (`http://127.0.0.1:5000/envio-correo?correo_destino=${destino}&asunto=${asunto}&contenido=${contenido}`)
-    .them((data:any) =>{
-      console.log(data);
-    })
-    return u;
-
+    fetch(`${Llaves.URLServicioNotificaciones}/envio-correo?correo_destino=${destino}&asunto=${asunto}&contenido=${contenido}`)
+      .then((data:any) =>{
+        console.log(data);
+      })
+      return u;
   }
 
   @get('/usuarios/count')
